@@ -28,6 +28,8 @@ jobs:
           pip install pyinstaller pywebview pystray platformdirs Pillow
 
       - name: Build executable
+        env:
+          PYTHONIOENCODING: utf-8
         run: python build_desktop.py
 
       - name: Upload artifact

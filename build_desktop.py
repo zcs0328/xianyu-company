@@ -13,9 +13,15 @@
 
 import os
 import sys
+import io
 import shutil
 import subprocess
 from pathlib import Path
+
+# Windows PowerShell 默认编码可能不是 UTF-8，强制设置为 UTF-8 避免中文输出崩溃
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 PROJECT_ROOT = Path(__file__).parent
 DIST_DIR = PROJECT_ROOT / "dist"
