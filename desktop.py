@@ -13,6 +13,7 @@ import json
 import importlib.util
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
 
 try:
     import webview
@@ -282,6 +283,13 @@ def main():
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
+    # 预先检查后端是否能正常导入（Windows 无控制台模式下异常不可见）
+    try:
+        from src.web.app import app as _app_check  # noqa: F401
+    except Exception as e:
+        logger.error(f"后端应用导入失败: {e}")
+        raise RuntimeError(f"无法加载后端应用，请检查安装包完整性: {e}") from e
+
     # 复制默认配置文件到用户目录（如果不存在）
     default_config = get_resource_path("config/settings.yaml")
     user_config = CONFIG_DIR / "settings.yaml"
@@ -363,4 +371,19 @@ routes = [
         input("按回车键退出...")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        # Windows 无控制台模式 (console=False) 下，异常不可见
+        # 写入应急崩溃日志到用户桌面或主目录
+        try:
+            import traceback
+            crash_path = Path.home() / ".xianyu-company-crash.log"
+            crash_path.write_text(
+                f"[{datetime.now().isoformat()}] 启动崩溃\n"
+                f"{traceback.format_exc()}\n",
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+        raise

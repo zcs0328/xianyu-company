@@ -6,3 +6,5 @@ data/company.db
 __pycache__/
 *.pyc
 .venv/
+dist/
+build/
