@@ -63,15 +63,15 @@ def collect_data_files() -> list:
     """收集需要打包的数据文件"""
     datas = []
 
-    # 配置文件
+    # 配置文件（使用 as_posix 避免 Windows 反斜杠被当作转义序列）
     config_dir = PROJECT_ROOT / "config"
     if config_dir.exists():
-        datas.append((str(config_dir), "config"))
+        datas.append((config_dir.as_posix(), "config"))
 
     # 前端静态文件
     static_dir = PROJECT_ROOT / "src" / "web" / "static"
     if static_dir.exists():
-        datas.append((str(static_dir), "src/web/static"))
+        datas.append((static_dir.as_posix(), "src/web/static"))
 
     # src 模块（Python 文件由 PyInstaller 自动收集，但可能需要显式包含某些子目录）
     # actions, agents, models, tools 都是 Python 包，会被自动分析
