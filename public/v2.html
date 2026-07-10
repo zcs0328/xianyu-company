@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>闲鱼一人公司 - 智能运营平台</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+:root {
+  --primary: #667eea;
+  --primary-dark: #5568d3;
+  --success: #52c41a;
+  --warning: #faad14;
+  --danger: #ff4d4f;
+  --bg: #f0f2f5;
+  --card: #fff;
+  --text: #333;
+  --text-light: #999;
+  --border: #e8e8e8;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,"Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+a { color:var(--primary); text-decoration:none; }
+
+/* Layout */
+.app { display:flex; min-height:100vh; }
+.sidebar { width:220px; background:linear-gradient(180deg,#2c3e50,#1a1a2e); color:#fff; padding:0; flex-shrink:0; position:fixed; height:100vh; overflow-y:auto; z-index:100; }
+.sidebar .logo { padding:24px 20px; font-size:18px; font-weight:700; border-bottom:1px solid rgba(255,255,255,0.1); }
+.sidebar .logo span { color:var(--primary); }
+.sidebar nav { padding:12px 0; }
+.sidebar nav a { display:flex; align-items:center; gap:10px; padding:12px 20px; color:rgba(255,255,255,0.65); font-size:14px; transition:all 0.2s; cursor:pointer; }
+.sidebar nav a:hover { color:#fff; background:rgba(255,255,255,0.08); }
+.sidebar nav a.active { color:#fff; background:rgba(102,126,234,0.3); border-right:3px solid var(--primary); }
+.sidebar nav a .icon { font-size:18px; width:20px; text-align:center; }
+.main { margin-left:220px; flex:1; padding:24px; min-width:0; }
+
+/* Header */
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+.header h1 { font-size:24px; }
+.header .actions { display:flex; gap:12px; align-items:center; }
+
+/* Status badge */
+.badge { display:inline-flex; align-items:center; gap:4px; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600; }
+.badge .dot { width:8px; height:8px; border-radius:50%; }
+.badge.running { background:#f6ffed; color:var(--success); }
+.badge.running .dot { background:var(--success); animation:pulse 2s infinite; }
+.badge.stopped { background:#fff2f0; color:var(--danger); }
+.badge.stopped .dot { background:var(--danger); }
+.badge.demo { background:#e6f7ff; color:#1890ff; }
+.badge.demo .dot { background:#1890ff; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* Buttons */
+.btn { padding:8px 20px; border:none; border-radius:8px; font-size:14px; cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; gap:6px; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:var(--primary-dark); }
+.btn-success { background:var(--success); color:#fff; }
+.btn-success:hover { opacity:0.85; }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-danger:hover { opacity:0.85; }
+.btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+.btn-outline:hover { border-color:var(--primary); color:var(--primary); }
+.btn-warning { background:var(--warning); color:#fff; }
+.btn-warning:hover { opacity:0.85; }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-sm { padding:4px 12px; font-size:13px; }
+
+/* Cards */
+.card { background:var(--card); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin-bottom:20px; }
+.card-title { font-size:16px; font-weight:600; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+
+/* Stats grid */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; margin-bottom:20px; }
+.stat-card { background:var(--card); border-radius:var(--radius); padding:20px; text-align:center; box-shadow:var(--shadow); }
+.stat-card .number { font-size:32px; font-weight:700; }
+.stat-card .label { font-size:13px; color:var(--text-light); margin-top:4px; }
+.stat-card.primary .number { color:var(--primary); }
+.stat-card.success .number { color:var(--success); }
+.stat-card.danger .number { color:var(--danger); }
+.stat-card.warning .number { color:var(--warning); }
+
+/* Grid */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+
+/* Agent cards */
+.agent-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+.agent-card { background:var(--card); border-radius:8px; padding:14px; border-left:4px solid var(--primary); box-shadow:var(--shadow); }
+.agent-card .agent-name { font-weight:600; font-size:15px; margin-bottom:4px; }
+.agent-card .agent-desc { font-size:12px; color:var(--text-light); }
+
+/* Table */
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:10px 8px; border-bottom:2px solid var(--border); color:var(--text-light); font-weight:600; white-space:nowrap; }
+td { padding:10px 8px; border-bottom:1px solid #f5f5f5; }
+tr:hover td { background:#fafafa; }
+
+/* Log terminal */
+.log-terminal { background:#1e1e1e; border-radius:8px; padding:16px; height:400px; overflow-y:auto; font-family:"Consolas","Monaco",monospace; font-size:13px; }
+.log-line { margin-bottom:2px; line-height:1.5; }
+.log-time { color:#888; }
+.log-level-INFO { color:#4ec9b0; }
+.log-level-WARNING { color:#dcdcaa; }
+.log-level-ERROR { color:#f44747; }
+.log-level-SUCCESS { color:#6a9955; }
+.log-source { color:#569cd6; }
+.log-message { color:#d4d4d4; }
+
+/* Funnel */
+.funnel { display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:12px; }
+.funnel-step { padding:8px 16px; border-radius:8px; font-size:13px; text-align:center; }
+.funnel-step .count { font-weight:700; font-size:18px; display:block; }
+.funnel-arrow { color:#ccc; font-size:18px; }
+
+/* Charts */
+.chart { height:300px; }
+
+/* Input */
+.input-group { display:flex; gap:8px; margin-bottom:16px; }
+.input-group input { flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; }
+.input-group input:focus { outline:none; border-color:var(--primary); }
+
+/* Account selector */
+.account-selector { padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; background:#fff; color:var(--text); cursor:pointer; min-width:180px; }
+.account-selector:focus { outline:none; border-color:var(--primary); }
+
+/* Warning box */
+.warning-box { background:#fffbe6; border:1px solid var(--warning); border-radius:8px; padding:12px 16px; margin-bottom:16px; color:#8c6d1f; font-size:14px; line-height:1.6; }
+.warning-box a { color:var(--primary); font-weight:600; cursor:pointer; }
+
+/* Modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; display:none; align-items:center; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.3); width:480px; max-width:92vw; max-height:90vh; overflow-y:auto; padding:28px; }
+.modal h3 { font-size:18px; margin-bottom:20px; }
+.modal input, .modal textarea { width:100%; padding:12px 16px; margin-bottom:14px; border:1px solid #e8e8e8; border-radius:8px; font-size:15px; font-family:inherit; transition:border-color 0.2s; }
+.modal input:focus, .modal textarea:focus { outline:none; border-color:var(--primary); }
+.modal textarea { resize:vertical; min-height:80px; }
+.modal .modal-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:8px; }
+.modal label { display:block; font-size:13px; color:var(--text-light); margin-bottom:6px; margin-top:4px; }
+.modal label:first-of-type { margin-top:0; }
+
+/* Account form */
+.account-form .form-row { margin-bottom:14px; }
+.account-form label { display:block; font-size:13px; color:var(--text-light); margin-bottom:6px; font-weight:600; }
+.account-form input, .account-form textarea { width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; }
+.account-form input:focus, .account-form textarea:focus { outline:none; border-color:var(--primary); }
+.account-form textarea { resize:vertical; min-height:80px; }
+
+/* Cookie guide */
+.cookie-guide { counter-reset:step; list-style:none; padding:0; }
+.cookie-guide li { padding:10px 0 10px 36px; position:relative; font-size:14px; line-height:1.6; color:#555; border-bottom:1px solid #f5f5f5; }
+.cookie-guide li:last-child { border-bottom:none; }
+.cookie-guide li::before { counter-increment:step; content:counter(step); position:absolute; left:0; top:10px; width:24px; height:24px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+.cookie-guide code { background:#f5f5f5; padding:2px 6px; border-radius:4px; font-size:13px; color:var(--primary-dark); }
+
+/* Analysis report */
+.report-section { margin-bottom:16px; }
+.report-section h4 { font-size:14px; color:var(--primary); margin-bottom:6px; }
+.report-section p { font-size:14px; line-height:1.6; color:#555; }
+.report-actions { list-style:none; }
+.report-actions li { padding:6px 0; font-size:14px; }
+
+/* Loading */
+.loading { text-align:center; padding:40px; color:var(--text-light); }
+.spinner { display:inline-block; width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Tabs */
+.tabs { display:flex; gap:4px; margin-bottom:16px; border-bottom:2px solid var(--border); }
+.tab { padding:8px 20px; cursor:pointer; font-size:14px; color:var(--text-light); border-bottom:2px solid transparent; margin-bottom:-2px; }
+.tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+
+/* Page visibility */
+.page { display:none; }
+.page.active { display:block; }
+
+/* Toast */
+.toast { position:fixed; top:20px; right:20px; padding:12px 24px; border-radius:8px; color:#fff; font-size:14px; z-index:9999; animation:slideIn 0.3s; }
+.toast.success { background:var(--success); }
+.toast.error { background:var(--danger); }
+.toast.info { background:var(--primary); }
+@keyframes slideIn { from{transform:translateX(100%);} to{transform:translateX(0);} }
+
+/* Responsive */
+@media (max-width:768px) {
+  .sidebar { width:60px; }
+  .sidebar .logo { font-size:0; }
+  .sidebar .logo span:first-child { font-size:20px; }
+  .sidebar nav a { justify-content:center; padding:12px; }
+  .sidebar nav a span:not(.icon) { display:none; }
+  .main { margin-left:60px; }
+  .grid-2, .grid-3 { grid-template-columns:1fr; }
+}
+
+/* Login overlay */
+.login-overlay { position:fixed; inset:0; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); z-index:9999; display:flex; align-items:center; justify-content:center; }
+.login-box { background:#fff; padding:40px; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.3); width:360px; text-align:center; }
+.login-box h2 { margin-bottom:8px; font-size:22px; color:#333; }
+.login-box p { color:#999; margin-bottom:24px; font-size:14px; }
+.login-box input { width:100%; padding:12px 16px; margin-bottom:16px; border:1px solid #e8e8e8; border-radius:8px; font-size:15px; transition:border-color 0.2s; }
+.login-box input:focus { outline:none; border-color:var(--primary); }
+.login-box button { width:100%; padding:14px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+.login-box button:hover { opacity:0.9; }
+.login-box .error { color:var(--danger); font-size:13px; margin-top:12px; display:none; }
+.login-box .logo-big { font-size:32px; font-weight:700; margin-bottom:8px; }
+.login-box .logo-big span { color:var(--primary); }
+</style>
+</head>
+<body>
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="logo-big"><span>Fish</span>Company</div>
+    <p>闲鱼一人公司 - 智能运营平台</p>
+    <input type="text" id="loginUser" placeholder="账号" value="">
+    <input type="password" id="loginPass" placeholder="密码" value="">
+    <button onclick="doLogin()">登录</button>
+    <div class="error" id="loginError">账号或密码错误</div>
+  </div>
+</div>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo"><span>Fish</span>Company</div>
+    <nav>
+      <a class="nav-link active" data-page="dashboard"><span class="icon">📊</span><span>仪表盘</span></a>
+      <a class="nav-link" data-page="accounts"><span class="icon">🔑</span><span>闲鱼账号</span></a>
+      <a class="nav-link" data-page="pipeline"><span class="icon">🔄</span><span>选品流水线</span></a>
+      <a class="nav-link" data-page="analytics"><span class="icon">📈</span><span>数据分析</span></a>
+      <a class="nav-link" data-page="agents"><span class="icon">🤖</span><span>Agent监控</span></a>
+      <a class="nav-link" data-page="logs"><span class="icon">📋</span><span>实时日志</span></a>
+      <a class="nav-link" data-page="settings"><span class="icon">⚙️</span><span>系统设置</span></a>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Dashboard Page -->
+    <div class="page active" id="page-dashboard">
+      <div class="header">
+        <h1>运营仪表盘</h1>
+        <div class="actions">
+          <span class="badge stopped" id="system-badge"><span class="dot"></span> 已停止</span>
+          <span class="badge demo" id="demo-badge" style="display:none;"><span class="dot"></span> 演示模式</span>
+          <a href="#" class="btn btn-primary btn-sm" style="text-decoration:none;">下载项目</a>
+          <button class="btn btn-success btn-sm" id="btn-start" onclick="startSystem()">启动</button>
+          <button class="btn btn-danger btn-sm" id="btn-stop" onclick="stopSystem()" disabled>停止</button>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card primary"><div class="number" id="stat-agents">9</div><div class="label">智能体</div></div>
+        <div class="stat-card success"><div class="number" id="stat-published">-</div><div class="label">今日发布</div></div>
+        <div class="stat-card"><div class="number" id="stat-jobs">-</div><div class="label">定时任务</div></div>
+        <div class="stat-card warning"><div class="number" id="stat-accounts">-</div><div class="label">活跃账号</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">智能体列表</div>
+          <div class="agent-grid" id="agent-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">账号矩阵</div>
+          <table id="matrix-table">
+            <thead><tr><th>账号</th><th>状态</th><th>健康度</th><th>今日发布</th><th>可发布</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">实时日志 <button class="btn btn-outline btn-sm" onclick="clearLogDisplay()">清空</button></div>
+        <div class="log-terminal" id="log-terminal">
+          <div class="log-line" style="color:#888;">等待系统启动...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accounts Page -->
+    <div class="page" id="page-accounts">
+      <div class="header"><h1>闲鱼账号管理</h1></div>
+      <div class="card">
+        <div class="card-title">
+          我的闲鱼账号
+          <button class="btn btn-primary btn-sm" onclick="addAccount()">添加账号</button>
+        </div>
+        <table id="accounts-table">
+          <thead><tr><th>账号名称</th><th>状态</th><th>Cookie</th><th>User ID</th><th>日发布上限</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">如何获取闲鱼Cookie</div>
+        <ol class="cookie-guide">
+          <li>在电脑浏览器打开 <code>https://www.goofish.com</code> 并登录你的闲鱼账号</li>
+          <li>按 <code>F12</code> 打开开发者工具，切换到 <strong>Application(应用)</strong> 标签</li>
+          <li>左侧找到 <strong>Cookies → https://www.goofish.com</strong></li>
+          <li>复制所有Cookie（或至少复制 <code>_m_h5_tk</code>, <code>cookie2</code>, <code>t</code>, <code>_tb_token_</code> 这几个关键Cookie）</li>
+          <li>在浏览器地址栏访问 <code>https://www.goofish.com/personal?spm=a21ybx</code> 获取你的用户ID（URL中的数字）</li>
+          <li>将获取的信息填入下方表单</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Pipeline Page -->
+    <div class="page" id="page-pipeline">
+      <div class="header"><h1>选品上架流水线</h1></div>
+      <div class="card">
+        <div class="card-title">执行流水线</div>
+        <p style="color:var(--text-light);margin-bottom:12px;font-size:14px;">输入搜索关键词，系统将自动完成：找货 → 比价 → 审核 → 复核 → 包装上架</p>
+        <div id="pipeline-account-warning" style="display:none;"></div>
+        <div class="input-group" style="align-items:center;flex-wrap:wrap;">
+          <label style="font-size:14px;color:var(--text);white-space:nowrap;margin-right:4px;">使用账号:</label>
+          <select class="account-selector" id="pipeline-account-select"></select>
+          <input type="text" id="pipeline-keyword" placeholder="输入搜索关键词（如：厨房收纳盒）" value="厨房收纳盒" style="flex:1;">
+          <button class="btn btn-primary" id="btn-pipeline" onclick="runPipeline()">执行流水线</button>
+        </div>
+      </div>
+
+      <div class="card" id="pipeline-result-card" style="display:none;">
+        <div class="card-title">流水线结果</div>
+        <div class="funnel" id="pipeline-funnel"></div>
+        <div style="margin-top:16px;" id="pipeline-details"></div>
+      </div>
+
+      <div class="card" id="pipeline-loading" style="display:none;">
+        <div class="loading"><div class="spinner"></div><p style="margin-top:12px;">流水线执行中，请稍候...</p></div>
+      </div>
+    </div>
+
+    <!-- Analytics Page -->
+    <div class="page" id="page-analytics">
+      <div class="header"><h1>数据分析</h1></div>
+      <div class="card">
+        <div class="card-title">运营表现分析 <button class="btn btn-primary btn-sm" onclick="runAnalyze()">生成分析</button></div>
+        <div id="analyze-content">
+          <p style="color:var(--text-light);">点击"生成分析"按钮，分析近7天运营数据并获取优化建议。</p>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">发布趋势</div><div class="chart" id="chart-publish-trend"></div></div>
+        <div class="card"><div class="card-title">收入与利润</div><div class="chart" id="chart-revenue-trend"></div></div>
+      </div>
+    </div>
+
+    <!-- Agents Page -->
+    <div class="page" id="page-agents">
+      <div class="header"><h1>Agent 监控</h1></div>
+      <div class="card">
+        <div class="card-title">调用统计 (24h) <button class="btn btn-outline btn-sm" onclick="loadAgentStats()">刷新</button></div>
+        <table id="agent-stats-table">
+          <thead><tr><th>角色</th><th>调用次数</th><th>Tokens</th><th>费用(元)</th><th>平均耗时</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">最近操作日志</div>
+        <table id="agent-logs-table">
+          <thead><tr><th>状态</th><th>时间</th><th>角色</th><th>动作</th><th>输出摘要</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Logs Page -->
+    <div class="page" id="page-logs">
+      <div class="header"><h1>实时日志</h1></div>
+      <div class="card">
+        <div class="card-title">系统日志 <span style="font-size:13px;color:var(--text-light);">模拟实时推送</span></div>
+        <div class="log-terminal" id="log-terminal-full" style="height:600px;">
+          <div class="log-line" style="color:#888;">等待日志...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Page -->
+    <div class="page" id="page-settings">
+      <div class="header"><h1>系统设置</h1></div>
+      <div class="card">
+        <div class="card-title">大模型配置</div>
+        <table id="llm-config-table">
+          <thead><tr><th>配置名</th><th>模型</th><th>API地址</th><th>密钥状态</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">闲鱼账号配置</div>
+        <table id="xianyu-config-table">
+          <thead><tr><th>账号名</th><th>Cookie</th><th>WS Token</th><th>用户ID</th><th>日发布上限</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">风控配置</div>
+        <div id="risk-config-content"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">定时任务</div>
+        <table id="scheduler-table">
+          <thead><tr><th>任务ID</th><th>名称</th><th>下次执行</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Account Modal -->
+<div class="modal-overlay" id="account-modal">
+  <div class="modal">
+    <h3>添加闲鱼账号</h3>
+    <div class="account-form">
+      <div class="form-row">
+        <label>账号名称</label>
+        <input type="text" id="acc-name" placeholder="如：我的主号">
+      </div>
+      <div class="form-row">
+        <label>Cookie</label>
+        <textarea id="acc-cookie" placeholder="粘贴从goofish.com获取的Cookie字符串"></textarea>
+      </div>
+      <div class="form-row">
+        <label>User ID</label>
+        <input type="text" id="acc-userid" placeholder="闲鱼用户ID数字">
+      </div>
+      <div class="form-row">
+        <label>WS Token</label>
+        <input type="text" id="acc-wstoken" placeholder="WebSocket Token（可选）">
+      </div>
+      <div class="form-row">
+        <label>日发布上限</label>
+        <input type="number" id="acc-maxpublish" value="5" min="1" max="100">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAccountModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveAccount()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 登录验证 ==========
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  if (user === 'zcs' && pass === 'zcs') {
+    document.getElementById('loginOverlay').style.display = 'none';
+    localStorage.setItem('xianyu_auth', 'zcs');
+    initApp();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+// 回车登录
+document.getElementById('loginPass').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginUser').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') document.getElementById('loginPass').focus();
+});
+// 检查是否已登录
+if (localStorage.getItem('xianyu_auth') === 'zcs') {
+  document.getElementById('loginOverlay').style.display = 'none';
+}
+
+// ========== 全局状态 ==========
+let systemRunning = false;
+let logTimer = null;
+let charts = {};
+
+// ========== Agnes AI 配置 ==========
+const AGNES_API_URL = 'https://apihub.agnes-ai.com/v1/chat/completions';
+const AGNES_API_KEY = 'sk-9OfGNyTbpLcDSFk2co69wpPBGHqDLW0jxOQzIRr5qv0G8i3Q';
+const AGNES_MODEL = 'agnes-1.5-flash';
+
+// ========== 工具函数 ==========
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function nowTime() {
+  const d = new Date();
+  return d.toTimeString().substring(0, 8);
+}
+
+function addSimLog(level, source, message) {
+  appendLog({ time: nowTime(), level: level.toLowerCase(), source: source, message: message });
+}
+
+// 从 AI 文本响应中提取 JSON
+function extractJSON(text) {
+  if (!text) return null;
+  let s = text.trim();
+  // 去除 markdown 代码块
+  let m = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (m) s = m[1].trim();
+  // 直接解析
+  try { return JSON.parse(s); } catch(e) {}
+  // 尝试截取第一个 { 到最后一个 }
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    try { return JSON.parse(s.substring(start, end + 1)); } catch(e) {}
+  }
+  // 尝试截取第一个 [ 到最后一个 ]
+  const s2 = s.indexOf('[');
+  const e2 = s.lastIndexOf(']');
+  if (s2 !== -1 && e2 !== -1 && e2 > s2) {
+    try { return JSON.parse(s.substring(s2, e2 + 1)); } catch(e) {}
+  }
+  return null;
+}
+
+// ========== Agnes AI 调用 ==========
+async function callAgnesAI(messages) {
+  const res = await fetch(AGNES_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + AGNES_API_KEY
+    },
+    body: JSON.stringify({
+      model: AGNES_MODEL,
+      messages: messages,
+      max_tokens: 4096,
+      temperature: 0.7
+    })
+  });
+  if (!res.ok) throw new Error('Agnes AI HTTP ' + res.status);
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// ========== 导航 ==========
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', () => {
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    link.classList.add('active');
+    const page = link.dataset.page;
+    document.getElementById('page-' + page).classList.add('active');
+    // 页面加载时刷新数据
+    if (page === 'dashboard') refreshDashboard();
+    if (page === 'accounts') renderAccountsTable();
+    if (page === 'pipeline') refreshPipelineAccountSelector();
+    if (page === 'agents') loadAgentStats();
+    if (page === 'settings') loadConfig();
+    if (page === 'analytics') loadAnalyzeCharts();
+  });
+});
+
+// ========== 闲鱼账号管理（localStorage） ==========
+function loadRealAccounts() {
+  try {
+    const raw = localStorage.getItem('xianyu_accounts_real');
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch(e) {
+    return [];
+  }
+}
+
+function saveRealAccounts(accounts) {
+  localStorage.setItem('xianyu_accounts_real', JSON.stringify(accounts));
+}
+
+function addAccount() {
+  // 清空表单
+  document.getElementById('acc-name').value = '';
+  document.getElementById('acc-cookie').value = '';
+  document.getElementById('acc-userid').value = '';
+  document.getElementById('acc-wstoken').value = '';
+  document.getElementById('acc-maxpublish').value = '5';
+  document.getElementById('account-modal').classList.add('show');
+}
+
+function closeAccountModal() {
+  document.getElementById('account-modal').classList.remove('show');
+}
+
+function saveAccount() {
+  const name = document.getElementById('acc-name').value.trim();
+  const cookie = document.getElementById('acc-cookie').value.trim();
+  const userId = document.getElementById('acc-userid').value.trim();
+  const wsToken = document.getElementById('acc-wstoken').value.trim();
+  const maxPublish = parseInt(document.getElementById('acc-maxpublish').value) || 5;
+
+  if (!name) { showToast('请输入账号名称', 'error'); return; }
+  if (!cookie) { showToast('请输入Cookie', 'error'); return; }
+  if (!userId) { showToast('请输入User ID', 'error'); return; }
+
+  const accounts = loadRealAccounts();
+  accounts.push({
+    name: name,
+    cookie: cookie,
+    user_id: userId,
+    ws_token: wsToken,
+    max_daily_publish: maxPublish,
+    active: true,
+    paused: false,
+    health_score: 100,
+    today_publish: 0,
+    created_at: new Date().toISOString()
+  });
+  saveRealAccounts(accounts);
+  closeAccountModal();
+  showToast('账号添加成功', 'success');
+  renderAccountsTable();
+  // 同步刷新其他依赖账号的页面
+  refreshPipelineAccountSelector();
+  refreshDashboardAccounts();
+}
+
+function deleteAccount(index) {
+  const accounts = loadRealAccounts();
+  if (index < 0 || index >= accounts.length) return;
+  const accName = accounts[index].name;
+  accounts.splice(index, 1);
+  saveRealAccounts(accounts);
+  showToast('已删除账号: ' + accName, 'info');
+  renderAccountsTable();
+  refreshPipelineAccountSelector();
+  refreshDashboardAccounts();
+}
+
+function getSelectedAccount() {
+  const select = document.getElementById('pipeline-account-select');
+  if (!select) return null;
+  const idx = parseInt(select.value);
+  if (isNaN(idx)) return null;
+  const accounts = loadRealAccounts();
+  if (idx < 0 || idx >= accounts.length) return null;
+  return accounts[idx];
+}
+
+function renderAccountsTable() {
+  const tbody = document.querySelector('#accounts-table tbody');
+  const accounts = loadRealAccounts();
+  if (!accounts.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ccc;padding:24px;">暂无账号，请点击"添加账号"按钮添加你的闲鱼账号</td></tr>';
+    return;
+  }
+  tbody.innerHTML = accounts.map((acc, i) => {
+    const hasCookie = acc.cookie && acc.cookie.trim().length > 0;
+    const hasUserId = acc.user_id && acc.user_id.trim().length > 0;
+    const status = acc.paused ? '<span style="color:var(--danger)">暂停</span>' : (acc.active !== false ? '<span style="color:var(--success)">活跃</span>' : '<span style="color:var(--text-light)">未激活</span>');
+    const cookieDisplay = hasCookie ? (acc.cookie.substring(0, 20) + '...') : '未配置';
+    return `
+      <tr>
+        <td><strong>${acc.name}</strong></td>
+        <td>${status}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${hasCookie ? '已配置' : '未配置'}">${cookieDisplay}</td>
+        <td>${hasUserId ? acc.user_id : '未配置'}</td>
+        <td>${acc.max_daily_publish || 5}</td>
+        <td><button class="btn btn-warning btn-sm" onclick="deleteAccount(${i})">删除</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function refreshPipelineAccountSelector() {
+  const select = document.getElementById('pipeline-account-select');
+  const warning = document.getElementById('pipeline-account-warning');
+  const accounts = loadRealAccounts();
+
+  if (!accounts.length) {
+    // 没有账号，显示警告
+    select.innerHTML = '';
+    select.disabled = true;
+    warning.style.display = 'block';
+    warning.className = 'warning-box';
+    warning.innerHTML = '尚无闲鱼账号，无法执行流水线。请先到 <a onclick="navigateTo(\'accounts\')">闲鱼账号</a> 页面添加账号。';
+    document.getElementById('btn-pipeline').disabled = true;
+    return;
+  }
+
+  // 有账号
+  select.disabled = false;
+  warning.style.display = 'none';
+  document.getElementById('btn-pipeline').disabled = false;
+  select.innerHTML = accounts.map((acc, i) => {
+    return `<option value="${i}">${acc.name}</option>`;
+  }).join('');
+}
+
+function navigateTo(page) {
+  const link = document.querySelector('.nav-link[data-page="' + page + '"]');
+  if (link) link.click();
+}
+
+function refreshDashboardAccounts() {
+  // 刷新仪表盘的账号相关数据
+  refreshDashboard();
+}
+
+// ========== 内嵌数据 ==========
+const EMBEDDED_AGENTS = [
+  {name:'采购Agent', desc:'搜索多平台货源，筛选优质商品'},
+  {name:'比价Agent', desc:'跨平台比价，计算利润空间'},
+  {name:'定价Agent', desc:'智能定价，优化毛利率'},
+  {name:'一审Agent', desc:'合规性审核，过滤违禁品'},
+  {name:'复核Agent', desc:'终审批准，综合质量评估'},
+  {name:'包装Agent', desc:'生成标题描述，优化转化'},
+  {name:'上架Agent', desc:'自动发布到闲鱼平台'},
+  {name:'客服Agent', desc:'自动回复买家咨询'},
+  {name:'风控Agent', desc:'监控账号风险，自动暂停'}
+];
+
+const EMBEDDED_SCHEDULER_JOBS = [
+  {id:'job_001', name:'每日选品任务', next_run:'2026-07-09 09:00:00'},
+  {id:'job_002', name:'自动上架任务', next_run:'2026-07-09 10:00:00'},
+  {id:'job_003', name:'客服巡检任务', next_run:'2026-07-09 11:00:00'},
+  {id:'job_004', name:'风控扫描任务', next_run:'2026-07-09 12:00:00'}
+];
+
+const EMBEDDED_AGENT_STATS = {
+  '采购Agent':   {count: 156, tokens: 234000, cost_yuan: 0.4680, avg_duration_sec: 3.2},
+  '比价Agent':   {count: 89,  tokens: 178000, cost_yuan: 0.3560, avg_duration_sec: 2.8},
+  '定价Agent':   {count: 89,  tokens: 156000, cost_yuan: 0.3120, avg_duration_sec: 2.5},
+  '一审Agent':   {count: 89,  tokens: 201000, cost_yuan: 0.4020, avg_duration_sec: 3.5},
+  '复核Agent':   {count: 76,  tokens: 189000, cost_yuan: 0.3780, avg_duration_sec: 3.8},
+  '包装Agent':   {count: 76,  tokens: 312000, cost_yuan: 0.6240, avg_duration_sec: 4.2},
+  '上架Agent':   {count: 68,  tokens: 89000,  cost_yuan: 0.1780, avg_duration_sec: 1.5},
+  '客服Agent':   {count: 423, tokens: 567000, cost_yuan: 1.1340, avg_duration_sec: 1.2},
+  '风控Agent':   {count: 288, tokens: 145000, cost_yuan: 0.2900, avg_duration_sec: 0.8}
+};
+
+const EMBEDDED_AGENT_LOGS = [
+  {success:true, created_at:'2026-07-09 14:30:12', role:'采购Agent', action:'search_products', output_summary:'关键词"厨房收纳盒"找到2个候选'},
+  {success:true, created_at:'2026-07-09 14:31:05', role:'比价Agent', action:'price_analysis', output_summary:'2个商品可上架，平均毛利率78%'},
+  {success:true, created_at:'2026-07-09 14:31:48', role:'一审Agent', action:'compliance_check', output_summary:'2个商品通过合规审核'},
+  {success:true, created_at:'2026-07-09 14:32:30', role:'复核Agent', action:'final_review', output_summary:'2个商品终审批准'},
+  {success:true, created_at:'2026-07-09 14:33:15', role:'包装Agent', action:'generate_listing', output_summary:'生成2个商品标题与描述'},
+  {success:true, created_at:'2026-07-09 14:33:52', role:'上架Agent', action:'publish', output_summary:'2个商品发布成功'},
+  {success:true, created_at:'2026-07-09 14:35:00', role:'客服Agent', action:'auto_reply', output_summary:'自动回复3条买家咨询'},
+  {success:false, created_at:'2026-07-09 14:36:20', role:'风控Agent', action:'risk_scan', output_summary:'检测到闲鱼号-测试号异常，已暂停'},
+  {success:true, created_at:'2026-07-09 14:28:10', role:'客服Agent', action:'auto_reply', output_summary:'自动回复5条买家咨询'},
+  {success:true, created_at:'2026-07-09 14:25:33', role:'风控Agent', action:'risk_scan', output_summary:'全部账号健康度正常'}
+];
+
+const EMBEDDED_CONFIG = {
+  llm: {
+    'agnes': {model: AGNES_MODEL, base_url: 'https://apihub.agnes-ai.com/v1', has_key: true}
+  },
+  risk_control: {
+    global_action_interval: 3,
+    daily_action_limit: 100,
+    auto_pause_on_warning: true
+  }
+};
+
+// ========== API 路由（替代后端） ==========
+async function api(url, method='GET', body=null) {
+  let path = url;
+  // 去除查询参数
+  const qIdx = path.indexOf('?');
+  if (qIdx !== -1) path = path.substring(0, qIdx);
+  try {
+    if (path === '/api/status') {
+      return getStatusData();
+    } else if (path === '/api/pipeline') {
+      const keyword = body && body.keyword ? body.keyword : '';
+      const account = body && body.account ? body.account : null;
+      return await runClientPipeline(keyword, account);
+    } else if (path === '/api/analyze') {
+      return await runClientAnalyze();
+    } else if (path === '/api/agent-stats') {
+      return { ok: true, stats: EMBEDDED_AGENT_STATS, logs: EMBEDDED_AGENT_LOGS };
+    } else if (path === '/api/config') {
+      // 配置中使用真实账号
+      const realAccounts = loadRealAccounts();
+      const xianyuAccounts = realAccounts.map(acc => ({
+        name: acc.name,
+        has_cookie: !!(acc.cookie && acc.cookie.trim()),
+        has_ws_token: !!(acc.ws_token && acc.ws_token.trim()),
+        has_user_id: !!(acc.user_id && acc.user_id.trim()),
+        max_daily_publish: acc.max_daily_publish || 5
+      }));
+      return { ok: true, llm: EMBEDDED_CONFIG.llm, xianyu_accounts: xianyuAccounts, risk_control: EMBEDDED_CONFIG.risk_control };
+    } else if (path === '/api/start') {
+      systemRunning = true;
+      startLogSimulation();
+      return { ok: true };
+    } else if (path === '/api/stop') {
+      systemRunning = false;
+      stopLogSimulation();
+      return { ok: true };
+    }
+    return { ok: false, error: '未知路由: ' + path };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+function getStatusData() {
+  // 使用真实账号
+  const realAccounts = loadRealAccounts();
+  const accounts = realAccounts.map(acc => ({
+    name: acc.name,
+    active: acc.active !== false,
+    paused: !!acc.paused,
+    health_score: acc.health_score || 100,
+    today_publish: acc.today_publish || 0,
+    can_publish: (acc.active !== false) && !acc.paused
+  }));
+  const activeAccounts = accounts.filter(a => a.active && !a.paused).length;
+  return {
+    ok: true,
+    running: systemRunning,
+    demo_mode: true,
+    agents: EMBEDDED_AGENTS,
+    account_matrix: {
+      active_accounts: activeAccounts,
+      accounts: accounts
+    },
+    scheduler_jobs: systemRunning ? EMBEDDED_SCHEDULER_JOBS : []
+  };
+}
+
+function showToast(msg, type='info') {
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ========== 系统控制 ==========
+async function startSystem() {
+  const res = await api('/api/start?mock=true', 'POST');
+  if (res.ok) {
+    showToast('系统启动中...', 'success');
+    addSimLog('success', 'system', '系统启动成功，所有智能体已就绪');
+    setTimeout(refreshDashboard, 1000);
+  } else {
+    showToast(res.error || '启动失败', 'error');
+  }
+}
+
+async function stopSystem() {
+  const res = await api('/api/stop', 'POST');
+  if (res.ok) {
+    showToast('系统已停止', 'info');
+    addSimLog('info', 'system', '系统已停止运行');
+    refreshDashboard();
+  }
+}
+
+// ========== 仪表盘 ==========
+async function refreshDashboard() {
+  const res = await api('/api/status');
+  if (!res.ok) return;
+
+  // 状态标签
+  const badge = document.getElementById('system-badge');
+  if (res.running) {
+    badge.className = 'badge running';
+    badge.innerHTML = '<span class="dot"></span> 运行中';
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-stop').disabled = false;
+  } else {
+    badge.className = 'badge stopped';
+    badge.innerHTML = '<span class="dot"></span> 已停止';
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-stop').disabled = true;
+  }
+
+  document.getElementById('demo-badge').style.display = res.demo_mode ? 'inline-flex' : 'none';
+
+  // 统计
+  document.getElementById('stat-jobs').textContent = res.scheduler_jobs.length;
+  const matrix = res.account_matrix || {};
+  document.getElementById('stat-accounts').textContent = matrix.active_accounts || 0;
+  // 今日发布：新账号为0
+  document.getElementById('stat-published').textContent = systemRunning ? 0 : '-';
+
+  // Agent 列表
+  const agentList = document.getElementById('agent-list');
+  agentList.innerHTML = res.agents.map(a => `
+    <div class="agent-card">
+      <div class="agent-name">${a.name}</div>
+      <div class="agent-desc">${a.desc}</div>
+    </div>
+  `).join('');
+
+  // 账号矩阵（真实账号）
+  const matrixBody = document.querySelector('#matrix-table tbody');
+  if (matrix.accounts && matrix.accounts.length) {
+    matrixBody.innerHTML = matrix.accounts.map(acc => `
+      <tr>
+        <td>${acc.name}</td>
+        <td>${acc.paused ? '<span style="color:var(--danger)">暂停</span>' : acc.active ? '<span style="color:var(--success)">活跃</span>' : '<span style="color:var(--text-light)">未激活</span>'}</td>
+        <td>${acc.health_score.toFixed(0)}</td>
+        <td>${acc.today_publish}</td>
+        <td>${acc.can_publish ? '是' : '否'}</td>
+      </tr>
+    `).join('');
+  } else {
+    matrixBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ccc;">暂无账号，请到"闲鱼账号"页面添加</td></tr>';
+  }
+
+  // 定时任务
+  const schedBody = document.querySelector('#scheduler-table tbody');
+  if (res.scheduler_jobs.length) {
+    schedBody.innerHTML = res.scheduler_jobs.map(j => `
+      <tr><td>${j.id}</td><td>${j.name}</td><td>${j.next_run || '-'}</td></tr>
+    `).join('');
+  } else {
+    schedBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#ccc;">系统未运行</td></tr>';
+  }
+}
+
+// ========== 流水线 ==========
+function generateDemoProducts(keyword) {
+  const r = (min, max) => Math.round((min + Math.random() * (max - min)) * 100) / 100;
+  return [
+    {
+      title: keyword + ' 创意实用款 家用收纳神器 大容量',
+      source_price: r(8, 12),
+      platform: '1688',
+      monthly_sales: Math.floor(180 + Math.random() * 40),
+      rating: Math.round((94 + Math.random() * 2) * 10) / 10
+    },
+    {
+      title: keyword + ' 简约风格 多功能款 热销爆款',
+      source_price: r(10, 15),
+      platform: '拼多多',
+      monthly_sales: Math.floor(130 + Math.random() * 40),
+      rating: Math.round((91 + Math.random() * 2) * 10) / 10
+    }
+  ];
+}
+
+async function runPipeline() {
+  const keyword = document.getElementById('pipeline-keyword').value.trim();
+  if (!keyword) { showToast('请输入关键词', 'error'); return; }
+
+  const account = getSelectedAccount();
+  if (!account) {
+    showToast('请先添加闲鱼账号', 'error');
+    return;
+  }
+
+  document.getElementById('btn-pipeline').disabled = true;
+  document.getElementById('pipeline-loading').style.display = 'block';
+  document.getElementById('pipeline-result-card').style.display = 'none';
+
+  const res = await api('/api/pipeline', 'POST', {keyword: keyword, account: account});
+
+  document.getElementById('btn-pipeline').disabled = false;
+  document.getElementById('pipeline-loading').style.display = 'none';
+
+  if (res.ok && res.result) {
+    showPipelineResult(res.result);
+    showToast('流水线完成', 'success');
+  } else {
+    showToast(res.error || '流水线失败', 'error');
+  }
+}
+
+async function runClientPipeline(keyword, account) {
+  const startTime = Date.now();
+  const steps = {};
+  const accountName = account ? account.name : '未知账号';
+
+  addSimLog('info', 'pipeline', '===== 开始执行流水线 关键词: ' + keyword + ' | 使用账号: ' + accountName + ' =====');
+
+  // Step 1: 采购 - 内嵌演示商品
+  addSimLog('info', 'purchasing_agent', '开始搜索货源...');
+  await sleep(1500);
+  const products = generateDemoProducts(keyword);
+  steps.purchasing = { candidates_count: products.length };
+  addSimLog('success', 'purchasing_agent', '找到 ' + products.length + ' 个候选商品');
+  products.forEach((p, i) => {
+    addSimLog('info', 'purchasing_agent', '  [' + (i+1) + '] ' + p.title + ' | 进货价¥' + p.source_price + ' | ' + p.platform + ' | 月销' + p.monthly_sales + ' | 好评' + p.rating + '%');
+  });
+  await sleep(800);
+
+  const productListText = products.map((p, i) =>
+    (i+1) + '. ' + p.title + ' | 进货价:' + p.source_price + '元 | 平台:' + p.platform + ' | 月销:' + p.monthly_sales + ' | 好评率:' + p.rating + '%'
+  ).join('\n');
+
+  // Step 2: 比价定价 - Agnes AI
+  addSimLog('info', 'pricing_agent', '调用 Agnes AI 进行比价与利润分析...');
+  const pricingPrompt =
+    '你是闲鱼比价定价专家。以下是采购候选商品，闲鱼售价通常为进货价的1.5-2.5倍。请分析并只返回纯JSON（不要markdown代码块，不要任何其他文字）：\n' +
+    '商品列表：\n' + productListText + '\n\n' +
+    '返回格式：\n' +
+    '{"listable_count": 可上架数量(整数), "items": [{"index": 1, "title": "商品名", "source_price": 进货价, "sell_price": 建议售价, "profit": 单件利润, "margin": 毛利率百分比数字}]}';
+
+  let pricingData = null;
+  try {
+    const resp = await callAgnesAI([{role: 'user', content: pricingPrompt}]);
+    pricingData = extractJSON(resp);
+    addSimLog('info', 'pricing_agent', 'Agnes AI 响应已接收');
+  } catch(e) {
+    addSimLog('error', 'pricing_agent', 'Agnes AI 调用失败: ' + e.message);
+  }
+  if (!pricingData) {
+    pricingData = {
+      listable_count: products.length,
+      items: products.map((p, i) => ({
+        index: i + 1, title: p.title, source_price: p.source_price,
+        sell_price: Math.round(p.source_price * 1.8 * 100) / 100,
+        profit: Math.round(p.source_price * 0.8 * 100) / 100,
+        margin: 80
+      }))
+    };
+    addSimLog('warning', 'pricing_agent', 'AI解析失败，使用默认定价策略');
+  }
+  steps.pricing = { listable_count: pricingData.listable_count || products.length };
+  (pricingData.items || []).forEach(it => {
+    addSimLog('info', 'pricing_agent', '  ' + (it.title || '') + ' → 售价¥' + it.sell_price + ' 利润¥' + it.profit + ' 毛利率' + it.margin + '%');
+  });
+  addSimLog('success', 'pricing_agent', '可上架商品: ' + steps.pricing.listable_count);
+  await sleep(800);
+
+  const titlesText = (pricingData.items || products.map((p,i)=>({title:p.title}))).map((it, i) => (i+1) + '. ' + it.title).join('\n');
+
+  // Step 3: 一审 - Agnes AI
+  addSimLog('info', 'review_agent', '调用 Agnes AI 进行一审（合规审核）...');
+  const reviewPrompt =
+    '你是闲鱼平台合规审核员。对以下商品进行合规审核（检查违禁品、侵权、虚假宣传等）。只返回纯JSON（不要markdown，不要其他文字）：\n' +
+    '商品列表：\n' + titlesText + '\n\n' +
+    '返回格式：\n' +
+    '{"passed": 通过数量(整数), "items": [{"index": 1, "title": "商品名", "passed": true或false, "reason": "审核意见"}]}';
+
+  let reviewData = null;
+  try {
+    const resp = await callAgnesAI([{role: 'user', content: reviewPrompt}]);
+    reviewData = extractJSON(resp);
+    addSimLog('info', 'review_agent', 'Agnes AI 响应已接收');
+  } catch(e) {
+    addSimLog('error', 'review_agent', 'Agnes AI 调用失败: ' + e.message);
+  }
+  if (!reviewData) {
+    reviewData = {
+      passed: products.length,
+      items: products.map((p, i) => ({index: i+1, title: p.title, passed: true, reason: '商品合规，可上架'}))
+    };
+    addSimLog('warning', 'review_agent', 'AI解析失败，使用默认审核结果');
+  }
+  steps.first_review = { passed: reviewData.passed || 0 };
+  (reviewData.items || []).forEach(it => {
+    addSimLog(it.passed ? 'success' : 'warning', 'review_agent', '  ' + (it.title || '') + ' ' + (it.passed ? '通过' : '未通过') + ' - ' + (it.reason || ''));
+  });
+  await sleep(800);
+
+  // Step 4: 复核 - Agnes AI
+  addSimLog('info', 'review_agent', '调用 Agnes AI 进行复核（终审批准）...');
+  const secondPrompt =
+    '你是闲鱼运营复核员。对以下已通过一审的商品进行终审（综合质量、利润空间、合规性）。只返回纯JSON（不要markdown，不要其他文字）：\n' +
+    '商品列表：\n' + titlesText + '\n\n' +
+    '返回格式：\n' +
+    '{"approved": 批准数量(整数), "items": [{"index": 1, "title": "商品名", "approved": true或false, "comment": "复核意见"}]}';
+
+  let secondData = null;
+  try {
+    const resp = await callAgnesAI([{role: 'user', content: secondPrompt}]);
+    secondData = extractJSON(resp);
+    addSimLog('info', 'review_agent', 'Agnes AI 响应已接收');
+  } catch(e) {
+    addSimLog('error', 'review_agent', 'Agnes AI 调用失败: ' + e.message);
+  }
+  if (!secondData) {
+    secondData = {
+      approved: products.length,
+      items: products.map((p, i) => ({index: i+1, title: p.title, approved: true, comment: '综合质量良好，批准上架'}))
+    };
+    addSimLog('warning', 'review_agent', 'AI解析失败，使用默认复核结果');
+  }
+  steps.second_review = { approved: secondData.approved || 0 };
+  (secondData.items || []).forEach(it => {
+    addSimLog(it.approved ? 'success' : 'warning', 'review_agent', '  ' + (it.title || '') + ' ' + (it.approved ? '批准' : '拒绝') + ' - ' + (it.comment || ''));
+  });
+  await sleep(800);
+
+  // Step 5: 包装上架 - Agnes AI
+  // 注意：静态站点无法真正发布到闲鱼，状态显示"待发布（需后端支持）"
+  addSimLog('info', 'packaging_agent', '调用 Agnes AI 生成标题描述...');
+  addSimLog('warning', 'publisher', '注意：静态站点无法实际发布到闲鱼，发布状态为"待发布（需后端支持）"');
+  const packPrompt =
+    '你是闲鱼文案专家。为以下商品生成吸引人的闲鱼上架标题(30字以内)和描述。只返回纯JSON（不要markdown，不要其他文字）：\n' +
+    '商品列表：\n' + titlesText + '\n\n' +
+    '返回格式：\n' +
+    '{"published": 生成数量(整数), "results": [{"title": "上架标题", "description": "商品描述", "price": 售价数字, "publish_success": true, "mock": true}]}';
+
+  let packData = null;
+  try {
+    const resp = await callAgnesAI([{role: 'user', content: packPrompt}]);
+    packData = extractJSON(resp);
+    addSimLog('info', 'packaging_agent', 'Agnes AI 响应已接收');
+  } catch(e) {
+    addSimLog('error', 'packaging_agent', 'Agnes AI 调用失败: ' + e.message);
+  }
+  if (!packData || !packData.results) {
+    const priceItems = pricingData.items || products.map(p => ({sell_price: Math.round(p.source_price*1.8*100)/100}));
+    packData = {
+      published: products.length,
+      results: products.map((p, i) => ({
+        title: keyword + ' 实用好物 性价比之选 全新',
+        description: keyword + '，质量保证，价格实惠，包邮到家，欢迎咨询！',
+        price: priceItems[i] ? priceItems[i].sell_price : Math.round(p.source_price*1.8*100)/100,
+        publish_success: true, mock: true
+      }))
+    };
+    addSimLog('warning', 'packaging_agent', 'AI解析失败，使用默认包装结果');
+  }
+  steps.packaging = { published: packData.published || (packData.results ? packData.results.length : 0), results: packData.results || [] };
+  (steps.packaging.results || []).forEach((r, i) => {
+    addSimLog('warning', 'publisher', '  发布[' + (i+1) + '] 待发布（需后端支持） - ' + (r.title || '') + ' ¥' + (r.price || 0) + ' | 账号: ' + accountName);
+  });
+  addSimLog('success', 'pipeline', '===== 流水线完成 生成' + steps.packaging.published + '件 待发布 | 使用账号: ' + accountName + ' =====');
+
+  const duration_sec = Math.round((Date.now() - startTime) / 1000);
+  return { ok: true, result: { keyword: keyword, account: accountName, duration_sec: duration_sec, published_count: steps.packaging.published, steps: steps } };
+}
+
+function showPipelineResult(result) {
+  const card = document.getElementById('pipeline-result-card');
+  card.style.display = 'block';
+
+  const steps = result.steps || {};
+  const purchasing = steps.purchasing || {};
+  const pricing = steps.pricing || {};
+  const firstReview = steps.first_review || {};
+  const secondReview = steps.second_review || {};
+  const packaging = steps.packaging || {};
+
+  // Funnel
+  const funnel = document.getElementById('pipeline-funnel');
+  const steps_data = [
+    {label:'采购候选', count: purchasing.candidates_count || 0, color:'#667eea'},
+    {label:'可上架', count: pricing.listable_count || 0, color:'#1890ff'},
+    {label:'一审通过', count: firstReview.passed || 0, color:'#52c41a'},
+    {label:'复核批准', count: secondReview.approved || 0, color:'#faad14'},
+    {label:'待发布', count: packaging.published || 0, color:'#722ed1'},
+  ];
+  funnel.innerHTML = steps_data.map((s, i) => `
+    <div class="funnel-step" style="background:${s.color}22;border:1px solid ${s.color};">
+      <span style="color:${s.color};font-size:12px;">${s.label}</span>
+      <span class="count" style="color:${s.color};">${s.count}</span>
+    </div>
+    ${i < steps_data.length-1 ? '<span class="funnel-arrow">→</span>' : ''}
+  `).join('');
+
+  // Details
+  const details = document.getElementById('pipeline-details');
+  const publishResults = packaging.results || [];
+  details.innerHTML = `
+    <p style="margin-bottom:8px;"><strong>关键词:</strong> ${result.keyword || ''} |
+       <strong>使用账号:</strong> ${result.account || '未知'} |
+       <strong>耗时:</strong> ${result.duration_sec||0}s |
+       <strong>待发布:</strong> ${result.published_count||0}件</p>
+    <div class="warning-box" style="margin-top:12px;">提示：当前为静态站点，无法实际发布到闲鱼平台。发布状态显示为"待发布（需后端支持）"，请接入后端服务以实现真实发布。</div>
+    ${publishResults.length ? `
+    <table style="margin-top:12px;">
+      <thead><tr><th>状态</th><th>标题</th><th>价格</th><th>模拟</th></tr></thead>
+      <tbody>
+        ${publishResults.map(r => `
+          <tr>
+            <td><span style="color:var(--warning)">待发布（需后端支持）</span></td>
+            <td>${(r.title||'').substring(0,35)}</td>
+            <td>¥${r.price||0}</td>
+            <td>${r.mock ? '是' : '否'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>` : ''}
+  `;
+}
+
+// ========== 数据分析 ==========
+async function runAnalyze() {
+  const content = document.getElementById('analyze-content');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div><p style="margin-top:12px;">分析中... (调用 Agnes AI)</p></div>';
+
+  const res = await api('/api/analyze?days=7');
+  if (res.ok && res.report) {
+    const r = res.report;
+    const m = r.metrics || {};
+    const a = r.analysis || {};
+    const actions = a['下一步行动建议'] || [];
+
+    content.innerHTML = `
+      <div class="stats-grid" style="margin-bottom:16px;">
+        <div class="stat-card primary"><div class="number">${m.total_published||0}</div><div class="label">总发布</div></div>
+        <div class="stat-card success"><div class="number">¥${(m.net_profit||0).toFixed(2)}</div><div class="label">净利润</div></div>
+        <div class="stat-card warning"><div class="number">${(m.avg_margin||0).toFixed(1)}%</div><div class="label">毛利率</div></div>
+        <div class="stat-card"><div class="number">${(m.reply_rate||0).toFixed(1)}%</div><div class="label">回复率</div></div>
+      </div>
+      <div class="report-section"><h4>整体评估</h4><p>${a['整体评估']||'N/A'}</p></div>
+      <div class="report-section"><h4>选品优化建议</h4><p>${a['选品优化建议']||'N/A'}</p></div>
+      <div class="report-section"><h4>定价优化建议</h4><p>${a['定价优化建议']||'N/A'}</p></div>
+      <div class="report-section"><h4>客服效率评估</h4><p>${a['客服效率评估']||'N/A'}</p></div>
+      <div class="report-section"><h4>风控状况评估</h4><p>${a['风控状况评估']||'N/A'}</p></div>
+      ${actions.length ? `<div class="report-section"><h4>下一步行动</h4><ul class="report-actions">${actions.map((act,i)=>`<li>${i+1}. ${act}</li>`).join('')}</ul></div>` : ''}
+    `;
+
+    // 更新图表
+    loadAnalyzeCharts();
+  } else {
+    content.innerHTML = '<p style="color:var(--danger);">分析失败: ' + (res.error||'') + '</p>';
+  }
+}
+
+async function runClientAnalyze() {
+  const prompt =
+    '你是闲鱼一人公司的运营分析专家。请基于近7天的运营数据生成一份分析报告。只返回纯JSON（不要markdown代码块，不要任何其他文字）。\n' +
+    '返回格式：\n' +
+    '{\n' +
+    '  "metrics": {"total_published": 总发布数(整数), "net_profit": 净利润(数字,元), "avg_margin": 平均毛利率(数字,百分比), "reply_rate": 回复率(数字,百分比)},\n' +
+    '  "analysis": {\n' +
+    '    "整体评估": "一段话",\n' +
+    '    "选品优化建议": "一段话",\n' +
+    '    "定价优化建议": "一段话",\n' +
+    '    "客服效率评估": "一段话",\n' +
+    '    "风控状况评估": "一段话",\n' +
+    '    "下一步行动建议": ["建议1", "建议2", "建议3"]\n' +
+    '  }\n' +
+    '}\n请生成合理的演示数据。';
+  try {
+    const resp = await callAgnesAI([{role: 'user', content: prompt}]);
+    const report = extractJSON(resp);
+    if (report) return { ok: true, report: report };
+  } catch(e) {
+    // fallback
+  }
+  // 兜底数据
+  return {
+    ok: true,
+    report: {
+      metrics: { total_published: 47, net_profit: 328.50, avg_margin: 72.5, reply_rate: 85.3 },
+      analysis: {
+        '整体评估': '近7天运营平稳，共发布47件商品，净利润328.50元，毛利率72.5%处于健康水平。客服回复率85.3%，略低于目标值90%。',
+        '选品优化建议': '建议增加家居收纳类目商品比例，该类目转化率较高；减少电子配件类目，竞争激烈利润偏低。',
+        '定价优化建议': '当前平均毛利率72.5%良好，可对热销商品适当上调5-8%售价以提升单件利润，同时保持价格竞争力。',
+        '客服效率评估': '回复率85.3%偏低，建议优化客服Agent自动回复话术，提升响应速度至15分钟内，目标回复率90%以上。',
+        '风控状况评估': '账号整体健康度良好。建议保持单账号日发布不超过5件，操作间隔3秒以上。',
+        '下一步行动建议': ['优化客服自动回复话术提升回复率', '增加家居收纳类选品比例', '对3款热销商品上调售价5%', '持续监控账号健康度']
+      }
+    }
+  };
+}
+
+async function loadAnalyzeCharts() {
+  // 加载Agent统计数据用于图表
+  const res = await api('/api/agent-stats');
+  if (!res.ok) return;
+
+  // 发布趋势图（用Agent调用次数模拟）
+  const pubDom = document.getElementById('chart-publish-trend');
+  let pubChart = echarts.getInstanceByDom(pubDom) || echarts.init(pubDom);
+  const stats = res.stats || {};
+  const roles = Object.keys(stats);
+  const counts = roles.map(r => stats[r].count || 0);
+
+  pubChart.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: roles, axisLabel: { rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ name: '调用次数', type: 'bar', data: counts, itemStyle: { color: '#667eea' } }]
+  });
+
+  // 费用图
+  const revDom = document.getElementById('chart-revenue-trend');
+  let revChart = echarts.getInstanceByDom(revDom) || echarts.init(revDom);
+  const costs = roles.map(r => stats[r].cost_yuan || 0);
+  const tokens = roles.map(r => stats[r].tokens || 0);
+
+  revChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['费用(元)', 'Tokens'] },
+    xAxis: { type: 'category', data: roles, axisLabel: { rotate: 30 } },
+    yAxis: [
+      { type: 'value', name: '费用', position: 'left' },
+      { type: 'value', name: 'Tokens', position: 'right' }
+    ],
+    series: [
+      { name: '费用(元)', type: 'bar', data: costs, itemStyle: { color: '#52c41a' } },
+      { name: 'Tokens', type: 'line', yAxisIndex: 1, data: tokens, itemStyle: { color: '#faad14' } }
+    ]
+  });
+
+  charts['pub'] = pubChart;
+  charts['rev'] = revChart;
+}
+
+// ========== Agent 监控 ==========
+async function loadAgentStats() {
+  const res = await api('/api/agent-stats');
+  if (!res.ok) return;
+
+  const stats = res.stats || {};
+  const statsBody = document.querySelector('#agent-stats-table tbody');
+  if (Object.keys(stats).length) {
+    statsBody.innerHTML = Object.entries(stats).map(([role, data]) => `
+      <tr>
+        <td>${role}</td>
+        <td>${data.count||0}</td>
+        <td>${(data.tokens||0).toLocaleString()}</td>
+        <td>¥${(data.cost_yuan||0).toFixed(4)}</td>
+        <td>${(data.avg_duration_sec||0).toFixed(2)}s</td>
+      </tr>
+    `).join('');
+  } else {
+    statsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ccc;">暂无数据</td></tr>';
+  }
+
+  const logsBody = document.querySelector('#agent-logs-table tbody');
+  if (res.logs && res.logs.length) {
+    logsBody.innerHTML = res.logs.slice(0,30).map(log => `
+      <tr>
+        <td>${log.success ? '<span style="color:var(--success)">OK</span>' : '<span style="color:var(--danger)">FAIL</span>'}</td>
+        <td>${log.created_at}</td>
+        <td>${log.role}</td>
+        <td>${log.action}</td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${log.output_summary||''}</td>
+      </tr>
+    `).join('');
+  } else {
+    logsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ccc;">暂无日志</td></tr>';
+  }
+}
+
+// ========== 设置 ==========
+async function loadConfig() {
+  const res = await api('/api/config');
+  if (!res.ok) return;
+
+  // LLM 配置
+  const llmBody = document.querySelector('#llm-config-table tbody');
+  llmBody.innerHTML = Object.entries(res.llm || {}).map(([name, cfg]) => `
+    <tr>
+      <td><strong>${name}</strong></td>
+      <td>${cfg.model}</td>
+      <td style="font-size:12px;">${cfg.base_url}</td>
+      <td>${cfg.has_key ? '<span style="color:var(--success)">已配置</span>' : '<span style="color:var(--danger)">未配置</span>'}</td>
+    </tr>
+  `).join('');
+
+  // 闲鱼账号（真实账号）
+  const xianyuBody = document.querySelector('#xianyu-config-table tbody');
+  if (res.xianyu_accounts && res.xianyu_accounts.length) {
+    xianyuBody.innerHTML = res.xianyu_accounts.map(acc => `
+      <tr>
+        <td>${acc.name}</td>
+        <td>${acc.has_cookie ? '是' : '否'}</td>
+        <td>${acc.has_ws_token ? '是' : '否'}</td>
+        <td>${acc.has_user_id ? '是' : '否'}</td>
+        <td>${acc.max_daily_publish}</td>
+      </tr>
+    `).join('');
+  } else {
+    xianyuBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ccc;">暂无账号，请到"闲鱼账号"页面添加</td></tr>';
+  }
+
+  // 风控配置
+  const rc = res.risk_control || {};
+  document.getElementById('risk-config-content').innerHTML = `
+    <p style="margin-bottom:8px;"><strong>全局操作间隔:</strong> ${rc.global_action_interval||3} 秒</p>
+    <p style="margin-bottom:8px;"><strong>单日操作上限:</strong> ${rc.daily_action_limit||100}</p>
+    <p><strong>告警自动暂停:</strong> ${rc.auto_pause_on_warning ? '是' : '否'}</p>
+  `;
+}
+
+// ========== 日志终端 ==========
+function appendLog(entry) {
+  const html = `<div class="log-line">
+    <span class="log-time">${entry.time}</span>
+    <span class="log-level-${entry.level.toUpperCase()}">[${entry.level.toUpperCase()}]</span>
+    <span class="log-source">[${entry.source}]</span>
+    <span class="log-message">${entry.message}</span>
+  </div>`;
+
+  const terminal = document.getElementById('log-terminal');
+  const terminalFull = document.getElementById('log-terminal-full');
+
+  [terminal, terminalFull].forEach(t => {
+    if (t) {
+      // 移除"等待"提示
+      const placeholder = t.querySelector('div[style*="color:#888"]');
+      if (placeholder) placeholder.remove();
+      t.insertAdjacentHTML('beforeend', html);
+      t.scrollTop = t.scrollHeight;
+      // 限制行数
+      while (t.children.length > 500) t.removeChild(t.firstChild);
+    }
+  });
+}
+
+function clearLogDisplay() {
+  document.getElementById('log-terminal').innerHTML = '<div class="log-line" style="color:#888;">日志已清空</div>';
+}
+
+// ========== 模拟日志生成（替代 WebSocket） ==========
+const SIM_LOG_POOL = [
+  ['system',         'INFO',    '系统心跳正常，所有服务运行中'],
+  ['scheduler',      'INFO',    '定时任务调度器运行中，等待下次执行'],
+  ['purchasing_agent','INFO',   '正在监控市场热点关键词...'],
+  ['purchasing_agent','INFO',   '抓取1688新货源数据'],
+  ['pricing_agent',  'INFO',    '比价引擎更新竞品定价数据'],
+  ['pricing_agent',  'INFO',    '计算利润空间与毛利率'],
+  ['customer_service','INFO',   '处理买家咨询消息'],
+  ['customer_service','SUCCESS', '自动回复买家咨询成功'],
+  ['risk_control',   'INFO',    '风控引擎扫描账号健康状态'],
+  ['risk_control',   'SUCCESS', '全部活跃账号健康度正常'],
+  ['publisher',      'INFO',    '准备执行上架任务'],
+  ['publisher',      'SUCCESS', '商品上架成功'],
+  ['packaging_agent','INFO',    '优化商品标题与描述'],
+  ['review_agent',   'INFO',    '执行合规性审核'],
+  ['review_agent',   'SUCCESS', '商品审核通过'],
+  ['system',         'INFO',    '数据同步完成'],
+  ['customer_service','INFO',   '新消息到达，排队处理中'],
+  ['risk_control',   'WARNING', '检测到操作频率略高，已自动降速'],
+  ['scheduler',      'SUCCESS', '定时任务执行完成'],
+  ['purchasing_agent','SUCCESS','发现潜在爆款商品候选']
+];
+
+function startLogSimulation() {
+  if (logTimer) return;
+  // 立即输出一条
+  addSimLog('info', 'system', '日志模拟器已启动');
+  logTimer = setInterval(() => {
+    const entry = SIM_LOG_POOL[Math.floor(Math.random() * SIM_LOG_POOL.length)];
+    addSimLog(entry[1].toLowerCase(), entry[0], entry[2]);
+  }, 3500);
+}
+
+function stopLogSimulation() {
+  if (logTimer) {
+    clearInterval(logTimer);
+    logTimer = null;
+    addSimLog('info', 'system', '日志模拟器已停止');
+  }
+}
+
+// ========== 初始化 ==========
+function initApp() {
+  refreshDashboard();
+  renderAccountsTable();
+  refreshPipelineAccountSelector();
+  // 每30秒刷新仪表盘
+  setInterval(refreshDashboard, 30000);
+}
+window.addEventListener('load', () => {
+  if (localStorage.getItem('xianyu_auth') === 'zcs') {
+    initApp();
+  }
+});
+
+window.addEventListener('resize', () => {
+  Object.values(charts).forEach(c => c && c.resize());
+});
+
+// 点击模态背景关闭
+document.getElementById('account-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAccountModal();
+});
+</script>
+</body>
+</html>

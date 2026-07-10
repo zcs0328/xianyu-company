@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: xianyu-company
+    env: python
+    buildCommand: pip install uvicorn fastapi pydantic pydantic-settings pyyaml loguru sqlalchemy aiosqlite openai httpx apscheduler websockets python-dotenv
+    startCommand: python3 -m uvicorn src.web.app:app --host 0.0.0.0 --port $PORT
+    plan: free

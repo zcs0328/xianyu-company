@@ -1,0 +1,5 @@
+{
+  "python": {
+    "entry": "src/web/app.py"
+  }
+}

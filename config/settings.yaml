@@ -1,0 +1,101 @@
+# ===== 一人公司全局配置 =====
+# 复制此文件为 settings.local.yaml 并填入真实凭据
+
+# ---------- 大模型配置 ----------
+llm:
+  # 总裁 / 比价 / 运营 —— 综合主力 (Agnes 1.5 Flash)
+  deepseek_v3:
+    api_type: "openai"
+    base_url: "https://apihub.agnes-ai.com/v1"
+    api_key: "sk-9OfGNyTbpLcDSFk2co69wpPBGHqDLW0jxOQzIRr5qv0G8i3Q"
+    model: "agnes-1.5-flash"
+    temperature: 0.7
+    max_tokens: 4096
+
+  # 审核 / 复核 / 会计 / 风控 —— 推理增强 (Agnes 1.5 Flash)
+  deepseek_r1:
+    api_type: "openai"
+    base_url: "https://apihub.agnes-ai.com/v1"
+    api_key: "sk-9OfGNyTbpLcDSFk2co69wpPBGHqDLW0jxOQzIRr5qv0G8i3Q"
+    model: "agnes-1.5-flash"
+    temperature: 0.3
+    max_tokens: 4096
+
+  # 采购 —— 轻量任务 (Agnes 1.5 Flash)
+  qwen_turbo:
+    api_type: "openai"
+    base_url: "https://apihub.agnes-ai.com/v1"
+    api_key: "sk-9OfGNyTbpLcDSFk2co69wpPBGHqDLW0jxOQzIRr5qv0G8i3Q"
+    model: "agnes-1.5-flash"
+    temperature: 0.7
+    max_tokens: 4096
+
+  # 包装上架 —— 轻量生成 (Agnes 1.5 Flash)
+  qwen_plus:
+    api_type: "openai"
+    base_url: "https://apihub.agnes-ai.com/v1"
+    api_key: "sk-9OfGNyTbpLcDSFk2co69wpPBGHqDLW0jxOQzIRr5qv0G8i3Q"
+    model: "agnes-1.5-flash"
+    temperature: 0.8
+    max_tokens: 2048
+
+  # 本地模型（阶段三降本）—— Ollama
+  # 安装: curl -fsSL https://ollama.com/install.sh | sh
+  # 拉模型: ollama pull qwen2.5:7b
+  # 启动后 api_key 填 "ollama" 即可激活本地路由
+  ollama_local:
+    api_type: "openai"
+    base_url: "http://localhost:11434/v1"
+    api_key: ""                    # 填 "ollama" 激活本地模型
+    model: "qwen2.5:7b"            # 本地模型名
+    temperature: 0.7
+    max_tokens: 2048
+
+# ---------- 闲鱼账号配置 ----------
+xianyu:
+  # 账号1（主号）
+  - name: "主号"
+    cookie_file: "data/cookies/account1.json"   # Playwright Cookie 导出文件
+    # WebSocket 消息监听
+    ws_token: ""                                  # 从闲鱼网页版抓取的 token
+    user_id: ""                                   # 闲鱼用户 ID
+    # 风控参数
+    max_daily_publish: 5          # 每日最大发布数（新号保守值）
+    max_daily_polish: 20          # 每日最大擦亮数
+    reply_delay_min: 2            # 回复最小延时（秒），模拟人类
+    reply_delay_max: 8            # 回复最大延时（秒）
+    publish_interval_min: 300     # 发布最小间隔（秒）
+
+  # 账号2、3（矩阵，阶段三启用）
+  # - name: "副号A"
+  #   cookie_file: "data/cookies/account2.json"
+  #   ...
+
+# ---------- 数据库 ----------
+database:
+  url: "sqlite+aiosqlite:///data/company.db"
+
+# ---------- 货源平台 ----------
+sources:
+  pinduoduo:
+    enabled: true
+    base_url: "https://mobile.yangkeduo.com"
+  alibaba_1688:
+    enabled: true
+    base_url: "https://m.1688.com"
+
+# ---------- 风控全局参数 ----------
+risk_control:
+  # 操作频率限制
+  global_action_interval: 3       # 全局操作最小间隔（秒）
+  # 异常检测阈值
+  daily_action_limit: 100         # 单日总操作上限
+  # 自动暂停触发条件
+  auto_pause_on_warning: true     # 收到风控告警自动暂停
+
+# ---------- 日志 ----------
+logging:
+  level: "INFO"
+  file: "data/logs/company.log"
+  rotation: "10 MB"
+  retention: "30 days"
